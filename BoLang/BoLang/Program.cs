@@ -1,36 +1,69 @@
 ﻿using System;
-using System.IO;
-using Bolang;
+using BoLang.Parser;
+using BoLang.AST;
 
 class Program
 {
 	static void Main()
 	{
-		Console.WriteLine("Type 'run bolang' to run the system");
-		string input = Console.ReadLine()?.Trim().ToLower();
+		var parser = new Parser();
+		Console.WriteLine("\nRepl v0.1");
 
-		if (input == "run bolang")
+		// Run REPL loop
+		while (true)
 		{
-			string filePath = "C:\\xampp\\htdocs\\Projects\\BoLang\\BoLang\\BoLang\\code.txt"; // fix later and make it use relative path instead
+			Console.Write("> ");
+			var input = Console.ReadLine();
 
-			if (File.Exists(filePath))
+			if (string.IsNullOrWhiteSpace(input) || input.Contains("exit"))
 			{
-				string code = File.ReadAllText(filePath);
-				var tokens = Lexer.Tokenize(code);
-
-				foreach (var token in tokens)
-				{
-					Console.WriteLine(token);
-				}
+				Environment.Exit(0);
 			}
-			else
+
+			try
 			{
-				Console.WriteLine("Error: code.txt not found.");
+				ProgramNode program = parser.ProduceAST(input);
+				PrintAST(program);
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine($"Error: {ex.Message}");
 			}
 		}
-		else
+	}
+
+	static void PrintAST(ProgramNode program)
+	{
+		Console.WriteLine("AST:");
+		foreach (var stmt in program.Body)
 		{
-			Console.WriteLine("Command not recognized. Exiting...");
+			PrintNode(stmt, 1);
+		}
+	}
+
+	static void PrintNode(Stmt node, int indent)
+	{
+		var prefix = new string(' ', indent * 2);
+
+		switch (node)
+		{
+			case BinaryExpr bin:
+				Console.WriteLine($"{prefix}BinaryExpr (op: {bin.Operator})");
+				PrintNode(bin.Left, indent + 1);
+				PrintNode(bin.Right, indent + 1);
+				break;
+
+			case NumericLiteral num:
+				Console.WriteLine($"{prefix}NumericLiteral: {num.Value}");
+				break;
+
+			case Identifier id:
+				Console.WriteLine($"{prefix}Identifier: {id.Symbol}");
+				break;
+
+			default:
+				Console.WriteLine($"{prefix}Unknown node: {node.GetType().Name}");
+				break;
 		}
 	}
 }
